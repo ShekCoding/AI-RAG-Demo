@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 简化版 RAG：本地知识库问答
-运行：python3 rag.py
+运行：python3 demos/rag_keyword.py
 
 RAG 四步流水线：
   1. 切块    → 把文档切成一段段

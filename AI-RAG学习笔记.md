@@ -2,7 +2,7 @@
 
 > 从「调用大模型 API」到「搭建带评估的 RAG 系统」的完整知识沉淀。
 > 对应代码在 ai-demo/ 目录，学习路线：
-> `chat.py`（单轮/多轮）→ `rag.py`（关键词检索）→ `embed.py`（向量 demo）→ `embed_rag.py`（标准 RAG）→ `eval.py`（检索评估）→ `answer_eval.py`（答案评估）
+> `demos/chat.py`（单轮/多轮）→ `demos/rag_keyword.py`（关键词检索）→ `demos/embed_demo.py`（向量 demo）→ `rag/` + `app.py`（标准 RAG）→ `evaluation/retrieve_eval.py`（检索评估）→ `evaluation/answer_eval.py`（答案评估）
 
 ---
 
@@ -176,11 +176,8 @@
 
 | 文件 | 作用 |
 |---|---|
-| `chat.py` | 单轮 + 多轮对话（大模型无状态） |
-| `rag.py` | 简化版 RAG（jieba 关键词检索，教学用） |
-| `embed.py` | 向量 demo（文字→数字、语义相似度） |
-| `chunker.py` | markdown 切块（按标题、不破坏代码块） |
-| `embed_rag.py` | 标准版 RAG（向量检索 + 生成） |
-| `eval_set.py` / `eval.py` | 检索评估（命中率） |
-| `answer_eval_set.py` / `answer_eval.py` | 答案评估（LLM-as-judge） |
-| `kb/` | 真实知识库（你的 README + 学习笔记） |
+| `app.py` | 入口：交互式问答 |
+| `rag/` | 核心包：`chunker` 切块 / `embedding` 向量化 / `retrieval` 检索 / `generation` 生成 / `pipeline` 组装 |
+| `evaluation/` | 评估：检索命中率 + 答案质量（LLM-as-judge） |
+| `demos/` | 教学脚本：`chat` 多轮对话 / `rag_keyword` 关键词检索 / `embed_demo` 向量 demo |
+| `data/` | 真实知识库（你的 README + 学习笔记） |

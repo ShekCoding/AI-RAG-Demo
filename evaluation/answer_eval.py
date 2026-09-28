@@ -12,32 +12,23 @@
   - correct（对不对）
   - hallucinated（有没有编造资料里没有的内容）
 
+用法（在项目根目录运行）：python3 -m evaluation.answer_eval
+
 ⚠️ 裁判的坑（面试常问）：
   1. 裁判自己也会错——它不是「标准答案」，只是近似
   2. 有偏差：位置偏差、长度偏差、自我偏好
   3. 所以要给它「明确的打分标准」，分数才稳定
 """
 import json
-import os
 import re
 
-import requests
-
-from answer_eval_set import ANSWER_SET
-from embed_rag import (
-    KB_DIR,
-    LLM_MODEL,
-    LLM_URL,
-    ask_with_context,
-    get_embeddings,
-    load_knowledge_base,
-    retrieve,
-)
+from evaluation.answer_eval_set import ANSWER_SET
+from rag.generation import chat
+from rag.pipeline import RAG
 
 
 def judge(question, context, answer):
     """让 DeepSeek 当裁判，返回 {"correct": 0/1, "hallucinated": 0/1, "reason": ...}"""
-    api_key = os.environ.get("DEEPSEEK_API_KEY", "")
     system_prompt = (
         "你是一个严格的评估裁判，评估一个客服助手的回答质量。"
         "只输出一个 JSON 对象，不要输出任何其他内容。\n"
@@ -52,21 +43,15 @@ def judge(question, context, answer):
         f"【检索到的参考资料】\n{context}\n\n"
         f"【助手的回答】\n{answer}"
     )
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    body = {
-        "model": LLM_MODEL,
-        "response_format": {"type": "json_object"},  # 强制输出 JSON，方便解析
-        "messages": [
+    content = chat(
+        [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-    }
-    r = requests.post(LLM_URL, json=body, headers=headers)
-    if r.status_code != 200:
-        print(f"❌ judge 调用失败：{r.status_code}")
-        print(r.text)
+        json_mode=True,
+    )
+    if content is None:
         return None
-    content = r.json()["choices"][0]["message"]["content"]
     try:
         return json.loads(content)
     except json.JSONDecodeError:
@@ -78,21 +63,22 @@ def judge(question, context, answer):
 
 
 if __name__ == "__main__":
-    chunks = load_knowledge_base(KB_DIR)
-    chunk_vecs = get_embeddings([c["text"] for c in chunks])
-    question_vecs = get_embeddings([item["question"] for item in ANSWER_SET])
+    rag = RAG()
+    if rag.chunk_vecs is None:
+        exit(1)
 
     pos_total = pos_ok = neg_total = neg_ok = hallucinated = 0
 
     print("=" * 60)
     print("逐题结果（LLM 裁判打分）")
     print("=" * 60)
-    for qv, item in zip(question_vecs, ANSWER_SET):
+    for item in ANSWER_SET:
         q = item["question"]
         kind = item["kind"]
-        top = retrieve(qv, chunk_vecs, chunks, top_k=2)
+        answer, top = rag.ask(q)
+        if answer is None:
+            continue
         context = "\n\n".join(c["text"] for _, c in top)
-        answer = ask_with_context(q, top)
         result = judge(q, context, answer)
 
         if result is None:

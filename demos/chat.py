@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 多轮对话 Demo：调用 DeepSeek，并让它「记住」上下文
-运行：python3 chat.py
+运行：python3 demos/chat.py
 
 核心认知：大模型没有记忆！每一轮都是全新的。
 要让它「记得」之前聊了什么，就得自己把历史攒进 messages，每轮完整发回去。

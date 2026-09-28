@@ -5,7 +5,7 @@
 核心指标：检索命中率（retrieval hit rate）
   = 测试集里，有多少题的「正确答案所在的 chunk」被检索进了 top_k
 
-用法：python3 eval.py
+用法（在项目根目录运行）：python3 -m evaluation.retrieve_eval
   会输出两部分：
     1. 逐题详细结果（top_k=2）：每题检索到了什么、命没命中
     2. 不同 top_k 的命中率对比（1 / 2 / 3）
@@ -14,8 +14,10 @@
   检索是 RAG 特有的环节，也是答案质量的「上游」：
   检索错 → 大概率答错；检索对 → 才轮到生成环节发挥。
 """
-from embed_rag import KB_DIR, get_embeddings, load_knowledge_base, retrieve
-from eval_set import EVAL_SET
+from evaluation.eval_set import EVAL_SET
+from rag.embedding import get_embeddings
+from rag.pipeline import load_knowledge_base
+from rag.retrieval import retrieve
 
 
 def evaluate(chunks, chunk_vecs, question_vecs, top_k, detail=False):
@@ -38,7 +40,7 @@ def evaluate(chunks, chunk_vecs, question_vecs, top_k, detail=False):
 
 
 if __name__ == "__main__":
-    chunks = load_knowledge_base(KB_DIR)
+    chunks = load_knowledge_base()
     chunk_vecs = get_embeddings([c["text"] for c in chunks])
     if chunk_vecs is None:
         exit(1)

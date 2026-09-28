@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 向量检索 Demo：把文字变成向量，感受「语义距离」
-运行：python3 embed.py
+运行：python3 demos/embed_demo.py
 
 为什么需要它？
 刚才 jieba 关键词检索输在「手机APP」和「iOS Android」字面不同、意思相同，
