@@ -9,6 +9,7 @@
   3. 检索：jieba 关键词 → 向量相似度（语义匹配）
 
 四步流水线没变：切块 → 检索(向量) → 增强 → 生成
+另加「可溯源」：回答时标注答案出自哪份文档哪一节。
 """
 import os
 
@@ -16,7 +17,6 @@ import requests
 
 from chunker import split_markdown
 
-# 知识库目录：里面放 markdown 文档，启动时统一读入切块
 KB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kb")
 
 EMBED_URL = "https://api.siliconflow.cn/v1/embeddings"
@@ -29,7 +29,11 @@ LLM_MODEL = "deepseek-chat"
 # ========== 第 1 步：切块 ==========
 
 def load_knowledge_base(kb_dir):
-    """读目录下所有 .md 文件，按 markdown 标题切成 chunk"""
+    """读目录下所有 .md 文件，按标题切成 chunk，并带上来源信息
+
+    每个 chunk 是一个 dict：text（内容）、source（来自哪个文件）、title（标题行）。
+    带来源，是为了回答时「可溯源」——告诉你答案出自哪份文档哪一节。
+    """
     chunks = []
     for name in sorted(os.listdir(kb_dir)):
         if not name.endswith(".md"):
@@ -37,7 +41,12 @@ def load_knowledge_base(kb_dir):
         path = os.path.join(kb_dir, name)
         with open(path, encoding="utf-8") as f:
             text = f.read()
-        chunks.extend(split_markdown(text))
+        for c in split_markdown(text):
+            chunks.append({
+                "text": c,
+                "source": name,
+                "title": c.split("\n", 1)[0],   # 第一行是标题
+            })
     return chunks
 
 
@@ -91,7 +100,12 @@ def ask_with_context(query, top_matches):
         print("❌ 请先设置环境变量：export DEEPSEEK_API_KEY=你的key")
         return None
 
-    context = "\n\n".join(chunk for _, chunk in top_matches)
+    # 每段资料前加来源标签，模型回答时知道出自哪里
+    context = "\n\n".join(
+        f"[来源：{chunk['source']} · {chunk['title']}]\n{chunk['text']}"
+        for _, chunk in top_matches
+    )
+
     system_prompt = (
         "你是一个接口自动化测试知识助手。请只根据下面的【参考资料】回答用户问题。\n"
         "如果资料里没有答案，就诚实地说『资料里没有相关信息』，不要编造。\n\n"
@@ -118,10 +132,9 @@ def ask_with_context(query, top_matches):
 
 
 if __name__ == "__main__":
-    # 启动时：读知识库 → 切块 → 一次性全部向量化（只做一次）
     chunks = load_knowledge_base(KB_DIR)
     print(f"已从 kb/ 目录加载知识库，按标题切成 {len(chunks)} 段")
-    chunk_vecs = get_embeddings(chunks)
+    chunk_vecs = get_embeddings([c["text"] for c in chunks])
     if chunk_vecs is None:
         exit(1)
     print("已全部向量化完成\n")
@@ -137,10 +150,12 @@ if __name__ == "__main__":
 
         print("[检索结果，按相似度从高到低]")
         for score, chunk in top_matches:
-            # 只显示 chunk 第一行（通常是标题），避免刷屏
-            head = chunk.split("\n", 1)[0]
-            print(f"  {score:+.3f}  <-  {head}")
+            print(f"  {score:+.3f}  <-  {chunk['title']}")
 
         answer = ask_with_context(q, top_matches)
         if answer:
             print(f"\nAI：{answer}")
+            # 可溯源：明确列出答案依据的文档与章节
+            print("\n📎 参考来源：")
+            for score, chunk in top_matches:
+                print(f"  · {chunk['source']} · {chunk['title']}")

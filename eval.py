@@ -23,14 +23,14 @@ def evaluate(chunks, chunk_vecs, question_vecs, top_k, detail=False):
     for qv, item in zip(question_vecs, EVAL_SET):
         top = retrieve(qv, chunk_vecs, chunks, top_k=top_k)
         # 命中 = top_k 里有任何一段，包含「期望子串」里的任意一个
-        hit = any(any(exp in chunk for exp in item["expect"]) for _, chunk in top)
+        hit = any(any(exp in chunk["text"] for exp in item["expect"]) for _, chunk in top)
         hits += hit
 
         if detail:
             mark = "✓" if hit else "✗"
             print(f"  {mark} {item['question']}")
             for score, chunk in top:
-                print(f"        {score:+.3f} <- {chunk.split(chr(10), 1)[0]}")
+                print(f"        {score:+.3f} <- {chunk['title']}")
 
     hit_rate = hits / len(EVAL_SET)
     print(f"top_k={top_k}：命中率 {hits}/{len(EVAL_SET)} = {hit_rate:.0%}")
@@ -39,7 +39,7 @@ def evaluate(chunks, chunk_vecs, question_vecs, top_k, detail=False):
 
 if __name__ == "__main__":
     chunks = load_knowledge_base(KB_DIR)
-    chunk_vecs = get_embeddings(chunks)
+    chunk_vecs = get_embeddings([c["text"] for c in chunks])
     if chunk_vecs is None:
         exit(1)
     question_vecs = get_embeddings([item["question"] for item in EVAL_SET])

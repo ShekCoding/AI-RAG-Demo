@@ -79,7 +79,7 @@ def judge(question, context, answer):
 
 if __name__ == "__main__":
     chunks = load_knowledge_base(KB_DIR)
-    chunk_vecs = get_embeddings(chunks)
+    chunk_vecs = get_embeddings([c["text"] for c in chunks])
     question_vecs = get_embeddings([item["question"] for item in ANSWER_SET])
 
     pos_total = pos_ok = neg_total = neg_ok = hallucinated = 0
@@ -91,7 +91,7 @@ if __name__ == "__main__":
         q = item["question"]
         kind = item["kind"]
         top = retrieve(qv, chunk_vecs, chunks, top_k=2)
-        context = "\n\n".join(c for _, c in top)
+        context = "\n\n".join(c["text"] for _, c in top)
         answer = ask_with_context(q, top)
         result = judge(q, context, answer)
 
