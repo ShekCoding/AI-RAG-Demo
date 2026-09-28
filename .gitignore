@@ -1,0 +1,17 @@
+# Python 运行产物
+__pycache__/
+*.py[cod]
+
+# 虚拟环境
+.venv/
+venv/
+
+# 环境变量文件（绝不能提交，里面可能有 key）
+.env
+
+# 系统文件
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
