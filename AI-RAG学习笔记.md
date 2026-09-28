@@ -172,11 +172,21 @@
 
 ---
 
+## 十三、Web 界面（Streamlit）
+
+- **UI 层复用核心逻辑**：`app_web.py` 只加了一层界面，检索/生成全走 `rag.RAG`，不改核心代码。
+- **`@st.cache_resource` 缓存 RAG 实例**：知识库加载 + 向量化很贵，整个 app 只做一次；否则每次交互都重新 embedding 全部 chunk，又慢又费 API 配额。
+- **`st.session_state` 攒聊天历史**：和 `chat.py` 里自己攒 `messages` 是同一个道理——大模型无状态，Web 里靠 session_state 存历史，每轮渲染出来。
+- **可调 top_k**：`rag.ask(query, top_k=...)` 支持传参，拖滑块只改检索段数，不重建知识库。
+
+---
+
 ## 附：ai-demo 文件清单
 
 | 文件 | 作用 |
 |---|---|
-| `app.py` | 入口：交互式问答 |
+| `app.py` | 入口：命令行交互式问答 |
+| `app_web.py` | 入口：Streamlit Web 界面（聊天式） |
 | `rag/` | 核心包：`chunker` 切块 / `embedding` 向量化 / `retrieval` 检索 / `generation` 生成 / `pipeline` 组装 |
 | `evaluation/` | 评估：检索命中率 + 答案质量（LLM-as-judge） |
 | `demos/` | 教学脚本：`chat` 多轮对话 / `rag_keyword` 关键词检索 / `embed_demo` 向量 demo |

@@ -61,14 +61,19 @@ class RAG:
         self.chunk_vecs = get_embeddings([c["text"] for c in self.chunks])
         self.top_k = top_k
 
-    def ask(self, query):
-        """问一句，返回 (answer, top_matches)"""
+    def ask(self, query, top_k=None):
+        """问一句，返回 (answer, top_matches)。
+
+        top_k 可选：Web UI 里用户拖滑块调整检索段数，不必重建 RAG。
+        不传则用实例默认的 self.top_k。
+        """
         if self.chunk_vecs is None:
             return None, []
         query_vec = get_embeddings([query])
         if query_vec is None:
             return None, []
-        top_matches = retrieve(query_vec[0], self.chunk_vecs, self.chunks, top_k=self.top_k)
+        k = top_k if top_k is not None else self.top_k
+        top_matches = retrieve(query_vec[0], self.chunk_vecs, self.chunks, top_k=k)
         answer = self._generate(query, top_matches)
         return answer, top_matches
 
